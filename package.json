@@ -1,0 +1,14 @@
+{
+  "name": "qq-codex-bridge",
+  "version": "1.2.0",
+  "private": true,
+  "description": "Windows QQ private-message bridge for an existing Codex desktop chat",
+  "license": "MIT",
+  "engines": { "node": ">=22.13" },
+  "scripts": {
+    "setup": "node --no-warnings setup.cjs",
+    "start": "node --no-warnings qq-bridge.cjs",
+    "test": "node --no-warnings --test tests/*.test.cjs"
+  },
+  "dependencies": { "ws": "8.22.0" }
+}
