@@ -55,6 +55,28 @@ test('duplicate QQ events create exactly one durable task and one receipt', asyn
   assert.equal(store.get('100000001:100000002:-42').text, '请处理这条');
 });
 
+test('empty QQ events are ignored before persistence and never produce a reply', async t => {
+  const { bridge, store, qq, desktop } = fixture(t);
+  for (const [index, message] of [[], '', undefined, [{ type: 'text', data: { text: '   ' } }]].entries()) {
+    await bridge.receive(event(900 + index, '', { message, raw_message: '' }));
+  }
+  assert.equal(store.recent().length, 0);
+  assert.equal(store.nextOutbound(), undefined);
+  assert.equal(qq.sent.length, 0);
+  assert.equal(desktop.sent.length, 0);
+});
+
+test('an empty placeholder does not suppress a later populated message with the same id', async t => {
+  const { bridge, store, qq, desktop } = fixture(t);
+  await bridge.receive(event(910, '', { message: [], raw_message: '' }));
+  await bridge.receive(event(910, '后续补齐的正文'));
+  await settled();
+  assert.equal(store.recent().length, 1);
+  assert.equal(qq.sent.length, 1);
+  assert.equal(desktop.sent.length, 1);
+  assert.match(desktop.sent[0], /后续补齐的正文/);
+});
+
 test('busy desktop receives successive messages immediately as guidance', async t => {
   const { bridge, store, desktop } = fixture(t);
   await bridge.receive(event(1, '第一条')); await bridge.receive(event(2, '第二条')); await settled();

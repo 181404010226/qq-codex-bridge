@@ -123,6 +123,14 @@ class QQBridge {
     if (event.sender?.user_id != null && String(event.sender.user_id) !== String(event.user_id)) return;
     if (event.message_id == null || !Number.isFinite(Number(event.time)) || Number(event.time) < this.acceptSince) return;
     const text = textOf(event);
+    const emptySegments = Array.isArray(event.message) && event.message.every(segment =>
+      segment?.type === 'text' && !String(segment.data?.text || '').trim());
+    const emptyText = event.message == null || (typeof event.message === 'string' && !event.message.trim());
+    const hasRawText = typeof event.raw_message === 'string' && Boolean(event.raw_message.trim());
+    if ((emptySegments || emptyText) && !hasRawText) {
+      this.log('empty_message_ignored', { messageId: String(event.message_id) });
+      return;
+    }
     this.store.transaction(() => this.routeMessage(event, text));
     this.prepareAttachments();
     await Promise.all([this.flushOutbox(), this.deliverPending()]);
@@ -333,7 +341,7 @@ async function main() {
     try { if (fs.existsSync(file) && fs.statSync(file).size > 2 * 1024 * 1024) fs.renameSync(file, file + '.previous'); } catch {}
     fs.appendFileSync(file, JSON.stringify({ at: new Date().toISOString(), event, ...details }) + '\n');
   };
-  config.root = ROOT; config.version = '1.2.0'; config.autoSendLocalFiles = true;
+  config.root = ROOT; config.version = '1.2.1'; config.autoSendLocalFiles = true;
   const qq = new OneBotClient(config);
   const bridge = new QQBridge({ config, store, qq, desktop: new DesktopClient(config.threadId), log });
   bridge.attachments = new AttachmentManager({ root: ROOT, store, qq, onReady: () => {

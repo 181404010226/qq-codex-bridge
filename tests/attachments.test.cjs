@@ -66,6 +66,15 @@ test('QQ image is copied into durable storage and sent as immediate readable gui
   assert.equal(f.qq.sent.filter(row => row.text?.startsWith('附件已收到')).length, 1);
 });
 
+test('an image populated after an empty event retains its original message id and downloads normally', async t => {
+  const f = fixture(t);
+  await f.bridge.receive({ ...event(11, []), raw_message: '' });
+  await f.bridge.receive(event(11, [segment('image')]));
+  await settled(f);
+  assert.equal(f.desktop.sent.length, 1);
+  assert.equal(f.manager.files(`${config.accountId}:${config.allowedUserIds[0]}:11`)[0].state, 'ready');
+});
+
 test('caption and multiple same-name files retain separate durable attachments', async t => {
   const f = fixture(t);
   await f.bridge.receive(event(2, [{ type: 'text', data: { text: '读一下这两个文件' } }, segment('file', 'a'), segment('file', 'b')]));
